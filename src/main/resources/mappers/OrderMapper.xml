@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- mapper:根标签，namespace：命名空间，随便写，一般保证命名空间唯一 -->
+<mapper namespace="com.zpc.mybatis.dao.OrderMapper">
+    <!-- statement，内容：sql语句。id：唯一标识，随便写，在同一个命名空间下保持唯一
+       resultType：sql语句查询结果集的封装类型,tb_user即为数据库中的表
+     -->
+    <select id="queryOrderUserByOrderNumber" resultType="com.zpc.mybatis.pojo.OrderUser">
+       select * from tb_order o left join tb_user u on o.user_id=u.id where o.order_number = #{number}
+   </select>
+
+    <resultMap id="OrderUserResultMap" type="com.zpc.mybatis.pojo.Order" autoMapping="true">
+        <!--
+            配置映射的订单信息
+            id：指定查询信息中的唯一标识，这里它代表订单信息的唯一标识，如果有多个列组成唯一标识，那么就配置多个id
+            column:订单中唯一标识的列
+            property:订单中唯一标识的列对应的订单中的那个属性
+        -->
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="order_number" property="orderNumber"/>
+        <result column="created" property="created"/>
+        <result column="updated" property="updated"/>
+        <!--
+             association:用于映射关联查询单个对象的信息
+             property:子对象在父对象中的属性名
+             javaType:子对象的java类型
+             autoMapping:完成子对象的自动映射，若开启驼峰，则按驼峰匹配
+        -->
+        <association property="user" javaType="com.zpc.mybatis.pojo.User" autoMapping="true">
+            <!--
+                id:关联用户的唯一标识
+                column:指定唯一标识用户信息的列
+                javaType:映射到user的那个属性
+            -->
+            <!--这里配置的时候不能用javaType="id"-->
+            <id column="user_id" property="id"/>
+            <result column="user_name" property="userName"/>
+            <result column="password" property="password"/>
+            <result column="name" property="name"/>
+            <result column="age" property="age"/>
+            <result column="sex" property="sex"/>
+            <result column="birthday" property="birthday"/>
+        </association>
+    </resultMap>
+
+    <select id="queryOrderWithUserByOrderNumber" resultMap="OrderUserResultMap">
+       select * from tb_order o left join tb_user u on o.user_id=u.id where o.order_number = #{number}
+    </select>
+    <resultMap id="OrderUserDetailResultMap" type="com.zpc.mybatis.pojo.Order" autoMapping="true" extends="OrderUserResultMap">
+        <!--这里使用了继承，所以不用再配置订单信息和用户信息的映射-->
+        <!--
+            订单明细信息
+            一个订单关联出了多条明细要使用collection进行映射
+            collection:对关联查询的多条记录映射到集合对象中
+            property:关联查询到的多条记录映射到order中的那个属性
+            ofType：指定映射到List集合中的pojo的类型
+        -->
+        <collection property="detailList" ofType="com.zpc.mybatis.pojo.OrderDetail" autoMapping="true">
+            <!--
+                id:订单明细唯一标识
+                property:要将订单明细的唯一标识映射到com.zpc.mybatis.pojo.OrderDetail的哪个属性
+            -->
+            <id column="orderdetail_id" property="id"/>
+            <result column="total_price" property="totalPrice"/>
+            <result column="status" property="status"/>
+        </collection>
+    </resultMap>
+
+    <select id="queryOrderWithUserAndDetailByOrderNumber" resultMap="OrderUserDetailResultMap">
+      select o.*,
+            u.user_name,
+            u.password,
+            u.name,
+            u.age,
+            u.sex,
+            u.birthday,
+            d.id orderdetail_id,
+            d.total_price,
+            d.item_id,
+            d.status
+      from
+           tb_order o,
+           tb_user u,
+           tb_orderdetail d
+      where
+	      o.user_id = u.id AND d.order_id = o.id;
+    </select>
+
+    <resultMap id="OrderUserDetailItemResultMap1" type="com.zpc.mybatis.pojo.User">
+        <!--用户信息-->
+        <id column="user_id" property="id"/>
+        <result column="user_name" property="userName"/>
+        <result column="password" property="password"/>
+        <result column="name" property="name"/>
+        <result column="age" property="age"/>
+        <result column="sex" property="sex"/>
+        <result column="birthday" property="birthday"/>
+
+        <!--
+            订单信息，一个用户对应多个订单，使用collection映射
+        -->
+        <collection property="orderList" ofType="com.zpc.mybatis.pojo.Order">
+            <id column="id" property="id"/>
+            <result column="user_id" property="userId"/>
+            <result column="order_number" property="orderNumber"/>
+            <result column="created" property="created"/>
+            <result column="updated" property="updated"/>
+
+            <!--
+                订单明细，一个订单包括多个明细
+            -->
+            <collection property="detailList" ofType="com.zpc.mybatis.pojo.OrderDetail">
+                <id column="orderdetail_id" property="id"/>
+                <result column="total_price" property="totalPrice"/>
+                <result column="status" property="status"/>
+
+                <!--
+                    一个订单明细对应一个商品
+                -->
+                <association property="item" javaType="com.zpc.mybatis.pojo.Item">
+                    <id column="item_id" property="id"/>
+                    <result column="itemName" property="itemName"/>
+                    <result column="itemPrice" property="itemPrice"/>
+                    <result column="itemDetail" property="itemDetail"/>
+                </association>
+            </collection>
+        </collection>
+    </resultMap>
+    <resultMap id="OrderUserDetailItemResultMap2" type="com.zpc.mybatis.pojo.Order" autoMapping="true">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="order_number" property="orderNumber"/>
+        <result column="created" property="created"/>
+        <result column="updated" property="updated"/>
+
+        <association property="user" javaType="com.zpc.mybatis.pojo.User" autoMapping="true">
+            <id column="user_id" property="id"/>
+            <result column="user_name" property="userName"/>
+            <result column="password" property="password"/>
+            <result column="name" property="name"/>
+            <result column="age" property="age"/>
+            <result column="sex" property="sex"/>
+            <result column="birthday" property="birthday"/>
+        </association>
+        <collection property="detailList" ofType="com.zpc.mybatis.pojo.OrderDetail" autoMapping="true">
+            <id column="orderdetail_id" property="id"/>
+            <result column="total_price" property="totalPrice"/>
+            <result column="status" property="status"/>
+            <result column="item_id" property="id"/>
+            <association property="item" javaType="com.zpc.mybatis.pojo.Item" autoMapping="true">
+                <id column="item_id" property="id"/>
+                <result column="itemName" property="itemName"/>
+                <result column="itemPrice" property="itemPrice"/>
+                <result column="itemDetail" property="itemDetail"/>
+            </association>
+        </collection>
+    </resultMap>
+
+    <select id="queryOrderWithUserAndDetailItemByOrderNumber" resultMap="OrderUserDetailItemResultMap2">
+        select o.*,
+                u.user_name,
+                u.password,
+                u.name,
+                u.age,
+                u.sex,
+                u.birthday,
+                d.id orderdetail_id,
+                d.total_price,
+                d.item_id,
+                d.status,
+                it.itemName,
+                it.itemPrice,
+                it.itemDetail
+        from
+               tb_order o,
+               tb_user u,
+               tb_orderdetail d,
+               tb_item it
+        where
+            o.user_id = u.id AND d.order_id = o.id AND d.item_id = it.id;
+    </select>
+
+    <select id="queryOrderWithUserAndDetailItemByOrderNumber1" resultMap="OrderUserDetailItemResultMap1">
+        select o.*,
+                u.user_name,
+                u.password,
+                u.name,
+                u.age,
+                u.sex,
+                u.birthday,
+                d.id orderdetail_id,
+                d.total_price,
+                d.item_id,
+                d.status,
+                it.itemName,
+                it.itemPrice,
+                it.itemDetail
+        from
+               tb_order o,
+               tb_user u,
+               tb_orderdetail d,
+               tb_item it
+        where
+            o.user_id = u.id AND d.order_id = o.id AND d.item_id = it.id;
+    </select>
+
+    <!--延迟加载的resultMap-->
+    <resultMap id="OrderUserLazyLoadingResultMap" type="com.zpc.mybatis.pojo.Order">
+        <!--对订单信息进行映射配置-->
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="order_number" property="orderNumber"/>
+        <result column="created" property="created"/>
+        <result column="updated" property="updated"/>
+        <!--
+            实现对用户进行延迟加载
+            select:指定延迟加载需要执行的statement的id（是根据user_id查询用户信息的statement）
+            如果这里使用的不是本xml文件中的id时，需要在前面加上namespace
+            column:订单信息中关联用户信息查询的列是user_id
+        -->
+        <association property="user" javaType="com.zpc.mybatis.pojo.User" select="queryUserById" column="user_id">
+            
+        </association>
+    </resultMap>
+    
+    <select id="queryUserById" parameterType="int" resultType="com.zpc.mybatis.pojo.User">
+          select * from tb_user where id=#{id}
+    </select>
+    
+    <select id="findOrderUserLazyLoading" resultMap="OrderUserLazyLoadingResultMap">
+        select * from tb_order
+    </select>
+</mapper>
